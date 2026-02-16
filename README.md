@@ -1,5 +1,4 @@
 # apgap-influenza-pipeline
-HEAD
 
 Starter Nextflow pipeline.
 
