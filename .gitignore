@@ -1,0 +1,23 @@
+# Nextflow
+.nextflow*
+work/
+.nf-work/
+trace.txt*
+timeline.html*
+report.html*
+dag.html*
+
+# Outputs
+results/
+out/
+logs/
+
+# Input data (keep out of git)
+data/
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+# macOS
+.DS_Store
