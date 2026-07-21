@@ -22,3 +22,7 @@ data/
 # macOS
 .DS_Store
 .DS_Store
+FLU_DB/
+work/
+results/
+.nextflow/
