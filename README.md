@@ -188,7 +188,7 @@ results/trim/fastp/
 
 ## Optional assay-specific primer trimming
 
-Cutadapt is reserved for known assay-specific primers, such as primers introduced during targeted amplicon generation. It is disabled by default because the pipeline should not assume that every dataset was generated with the same amplification primers.
+Cutadapt is reserved for known assay-specific primers, such as primers introduced during targeted amplicon generation. It is disabled by default.
 
 Default configuration:
 
