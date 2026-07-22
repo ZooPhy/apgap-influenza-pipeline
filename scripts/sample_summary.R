@@ -313,7 +313,7 @@ pass_segments <- character()
 if (file.exists(pass_segments_txt) && file.size(pass_segments_txt) > 0) {
   pass_segments <- unique(trimws(readLines(pass_segments_txt, warn = FALSE)))
   pass_segments <- pass_segments[
-    !is.na(pass_segments) & nzchar(pass_segments) & toupper(pass_segments) != "NA"
+    !is.na(pass_segments) & nzchar(pass_segments)
   ]
 }
 

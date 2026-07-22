@@ -18,15 +18,25 @@ segment_from_name <- function(x) {
   x <- basename(x)
   x <- sub("-coverage\\.txt$", "", x)
   x <- sub("^A_", "", x)
+  x <- toupper(x)
 
-  if (startsWith(x, "HA")) return("HA")
-  if (startsWith(x, "NA")) return("NA")
-
-  for (s in c("PB2", "PB1", "PA", "NP", "MP", "NS")) {
-    if (startsWith(x, s)) return(s)
+  # Canonicalize HA subtype names such as H1, H3, H5.
+  if (grepl("^HA", x) || grepl("^H[0-9]+", x)) {
+    return("HA")
   }
 
-  strsplit(x, "_")[[1]][1]
+  # Canonicalize NA subtype names such as N1, N2, N5.
+  if (grepl("^NA", x) || grepl("^N[0-9]+", x)) {
+    return("NA")
+  }
+
+  for (s in c("PB2", "PB1", "PA", "NP", "MP", "NS")) {
+    if (startsWith(x, s)) {
+      return(s)
+    }
+  }
+
+  strsplit(x, "_", fixed = TRUE)[[1]][1]
 }
 
 get_cov_stats <- function(f, sample_name, threshold) {
@@ -101,6 +111,15 @@ if (length(sample_res) == 0) {
 }
 
 res <- do.call(rbind, sample_res)
+valid_segments <- c("PB2", "PB1", "PA", "HA", "NP", "NA", "MP", "NS")
+unknown_segments <- setdiff(unique(res$segment), valid_segments)
+
+if (length(unknown_segments) > 0) {
+  warning(
+    "Unrecognized segment names: ",
+    paste(unknown_segments, collapse = ", ")
+  )
+}
 
 seg_order <- c("PB2", "PB1", "PA", "HA", "NP", "NA", "MP", "NS")
 res$segment_order <- match(res$segment, seg_order)
