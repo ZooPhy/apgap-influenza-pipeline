@@ -171,10 +171,13 @@ process IRMA_COVERAGE {
 
   script:
   """
-  Rscript ${coverage_script} \
-    ${sample_dir} \
-    ${sample_id} \
-    ${params.coverage_threshold}
+  cp -RL ${sample_dir} irma_input
+  cp -L ${coverage_script} irma_coverage_local.R
+
+  Rscript irma_coverage_local.R \
+      irma_input \
+      ${sample_id} \
+      ${params.coverage_threshold}
   """
 }
 
@@ -212,8 +215,6 @@ process VADR_IRMA_PASS_SEGMENTS {
   cpus params.threads
 
   container params.vadr_container
-
-  containerOptions = "--platform linux/amd64 -v ${projectDir}:${projectDir}"
 
   input:
     tuple val(sample_id),
@@ -429,17 +430,138 @@ process IVAR_COVERAGE_SUMMARY {
   """
 }
 
+
+process SUBTYPE_EVIDENCE {
+  tag "$sample_id"
+  publishDir "${params.outdir}/subtype/${sample_id}", mode: 'copy'
+  cpus 1
+  memory '2 GB'
+  stageInMode 'copy'
+
+  input:
+    tuple val(sample_id), path(sample_dir)
+
+  output:
+    tuple val(sample_id), path("${sample_id}.subtype_evidence.tsv")
+
+  container params.samtools_container
+
+  script:
+  """
+  printf 'sample_id\tsegment\tsubtype\tbam\treference_length\tmapped_reads\tmean_depth\tmedian_depth\tbreadth_at_threshold\n' \
+    > ${sample_id}.subtype_evidence.tsv
+
+  {
+    find ${sample_dir} -type f -name 'A_HA_H*.bam'
+    find ${sample_dir} -type f -name 'A_NA_N*.bam'
+  } | sort -u | while IFS= read -r bam; do
+
+    name=\$(basename "\$bam" .bam)
+    segment=\$(printf '%s' "\$name" | cut -d_ -f2)
+    subtype=\$(printf '%s' "\$name" | cut -d_ -f3)
+
+    depth_file="\${name}.depth.tsv"
+    sorted_file="\${name}.depths.sorted.txt"
+
+    samtools depth -aa "\$bam" > "\$depth_file"
+    cut -f3 "\$depth_file" | sort -n > "\$sorted_file"
+
+    reference_length=\$(wc -l < "\$sorted_file" | tr -d ' ')
+    mapped_reads=\$(samtools view -c -F 4 "\$bam")
+
+    mean_depth=\$(awk '{s+=\$1} END {if (NR) printf "%.6f", s/NR; else print 0}' "\$sorted_file")
+    median_depth=\$(awk '{a[NR]=\$1} END {if (NR==0) print 0; else if (NR%2) print a[(NR+1)/2]; else printf "%.6f", (a[NR/2]+a[NR/2+1])/2}' "\$sorted_file")
+    breadth=\$(awk -v t=${params.subtype_min_median_depth} '{if (\$1>=t) n++} END {if (NR) printf "%.6f", n/NR; else print 0}' "\$sorted_file")
+
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      '${sample_id}' "\$segment" "\$subtype" "\$name.bam" "\$reference_length" \
+      "\$mapped_reads" "\$mean_depth" "\$median_depth" "\$breadth" \
+      >> ${sample_id}.subtype_evidence.tsv
+  done
+  """
+}
+
+process SUMMARY_REPORT {
+  tag "$sample_id"
+  publishDir "${params.outdir}/summary", mode: 'copy'
+  cpus 1
+  memory '1 GB'
+  stageInMode 'copy'
+
+  input:
+    tuple val(sample_id),
+          path(coverage_tsv),
+          path(pass_segments_txt),
+          path(pass_fasta),
+          path(blast_tsv),
+          path(aa_tsv),
+          path(subtype_tsv)
+    path sample_summary_script
+
+  output:
+    tuple val(sample_id),
+          path("${sample_id}.sample_summary.tsv"),
+          path("${sample_id}.sample_summary.md")
+
+  container params.r_base_container
+
+  script:
+  """
+  cp -L ${coverage_tsv} coverage.tsv
+  cp -L ${pass_segments_txt} pass_segments.txt
+  cp -L ${blast_tsv} blast.tsv
+  cp -L ${aa_tsv} aa.tsv
+  cp -L ${subtype_tsv} subtype.tsv
+  cp -L ${sample_summary_script} sample_summary_local.R
+
+  Rscript sample_summary_local.R \
+    --sample_id ${sample_id} \
+    --coverage_tsv coverage.tsv \
+    --pass_segments_txt pass_segments.txt \
+    --blast_tsv blast.tsv \
+    --aa_tsv aa.tsv \
+    --host ${params.host} \
+    --subtype_tsv subtype.tsv \
+    --subtype_min_median_depth ${params.subtype_min_median_depth} \
+    --subtype_min_breadth ${params.subtype_min_breadth} \
+    --subtype_minor_fraction ${params.subtype_minor_fraction} \
+    --out_tsv ${sample_id}.sample_summary.tsv \
+    --out_md ${sample_id}.sample_summary.md
+  """
+}
+
 workflow {
+  def valid_hosts = ['human', 'bird', 'swine', 'environmental', 'other']
+
+params.host = params.host
+  .toString()
+  .trim()
+  .toLowerCase()
+
+if (!valid_hosts.contains(params.host)) {
+  error """
+Invalid --host value: ${params.host}
+
+Valid options:
+  human
+  bird
+  swine
+  environmental
+  other
+"""
+}
   def build_read_pairs = {
     if (params.reads_dir) {
       def d = params.reads_dir.toString().replaceAll(/\/$/, '')
 
       def candidates = [
-        "${d}/*_{R1,R2}_001.fastq.gz",
-        "${d}/*_{R1,R2}.fastq.gz",
-        "${d}/*_{R1,R2}_001.fq.gz",
-        "${d}/*_{R1,R2}.fq.gz"
-      ]
+  		"${d}/*-R{1,2}.fastq.gz",
+  		"${d}/*-R{1,2}_001.fastq.gz",
+  		"${d}/*_{R1,R2}.fastq.gz",
+  		"${d}/*_{R1,R2}_001.fastq.gz",
+  		"${d}/*_{R1,R2}.fq.gz",
+  		"${d}/*_{R1,R2}_001.fq.gz"
+		]
 
       for (pat in candidates) {
         def files = file(pat)
@@ -503,6 +625,38 @@ workflow {
     vadr_results,
     file(params.variant_annotation_script),
     file(params.genetic_code)
+  )
+
+
+  subtype_evidence = SUBTYPE_EVIDENCE(irma_results)
+
+  coverage_for_summary = irma_coverage.map { sid, cov_tsv, pass_txt, pass_fa ->
+    tuple(sid, cov_tsv, pass_txt, pass_fa)
+  }
+
+  blast_for_summary = blast_results.map { sid, blast_tsv ->
+    tuple(sid, blast_tsv)
+  }
+
+  aa_for_summary = variant_annotation_results.map { sid, aa_tsv ->
+    tuple(sid, aa_tsv)
+  }
+
+  subtype_for_summary = subtype_evidence.map { sid, subtype_tsv ->
+    tuple(sid, subtype_tsv)
+  }
+
+  summary_inputs = coverage_for_summary
+    .combine(blast_for_summary, by: 0)
+    .combine(aa_for_summary, by: 0)
+    .combine(subtype_for_summary, by: 0)
+    .map { sid, cov_tsv, pass_txt, pass_fa, blast_tsv, aa_tsv, subtype_tsv ->
+      tuple(sid, cov_tsv, pass_txt, pass_fa, blast_tsv, aa_tsv, subtype_tsv)
+    }
+
+  summary_report = SUMMARY_REPORT(
+    summary_inputs,
+    file("${projectDir}/scripts/sample_summary.R")
   )
 
   /*

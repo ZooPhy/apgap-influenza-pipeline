@@ -23,6 +23,41 @@ out_file <- get_arg("--out")
 
 dir.create(dirname(out_file), recursive = TRUE, showWarnings = FALSE)
 
+write_empty_output <- function(path) {
+  empty <- data.frame(
+    sample_id = character(),
+    irma_file = character(),
+    irma_segment = character(),
+    nt_pos = integer(),
+    nt_ref = character(),
+    nt_alt = character(),
+    depth = numeric(),
+    freq = numeric(),
+    vadr_seq = character(),
+    protein = character(),
+    cds_coords = character(),
+    cds_pos = integer(),
+    codon_number = integer(),
+    codon_position = integer(),
+    consensus_codon = character(),
+    variant_codon = character(),
+    consensus_aa = character(),
+    variant_aa = character(),
+    aa_change = character(),
+    effect = character(),
+    stringsAsFactors = FALSE
+  )
+
+  write.table(
+    empty,
+    file = path,
+    sep = "	",
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = TRUE
+  )
+}
+
 # -----------------------------
 # 1. Read genetic code
 # -----------------------------
@@ -177,15 +212,45 @@ if (length(variant_files) == 0) {
 variants <- data.frame()
 
 for (vf in variant_files) {
-  x <- read.table(
-    vf,
-    header = TRUE,
-    stringsAsFactors = FALSE,
-    fill = TRUE,
-    check.names = FALSE
+  if (
+    !file.exists(vf) ||
+    is.na(file.info(vf)$size) ||
+    file.info(vf)$size == 0
+  ) {
+    warning("Skipping empty IRMA variant file: ", vf)
+    next
+  }
+
+  x <- tryCatch(
+    read.table(
+      vf,
+      header = TRUE,
+      stringsAsFactors = FALSE,
+      fill = TRUE,
+      check.names = FALSE,
+      quote = "",
+      comment.char = ""
+    ),
+    error = function(e) {
+      warning(
+        "Skipping unreadable IRMA variant file ",
+        vf,
+        ": ",
+        conditionMessage(e)
+      )
+      data.frame(stringsAsFactors = FALSE)
+    }
   )
 
   if (nrow(x) == 0) next
+
+  if (!"Reference_Name" %in% names(x)) {
+    warning(
+      "Skipping IRMA variant file with no Reference_Name column: ",
+      vf
+    )
+    next
+  }
 
   for (i in seq_len(nrow(x))) {
     irma_segment <- x$Reference_Name[i]
@@ -220,14 +285,13 @@ for (vf in variant_files) {
 }
 
 if (nrow(variants) == 0) {
-  warning("No variants found. Writing empty output.")
-  write.table(
-    variants,
-    out_file,
-    sep = "\t",
-    quote = FALSE,
-    row.names = FALSE
+  warning(
+    "No usable IRMA variants found for sample ",
+    sample_id,
+    ". Writing a header-only output."
   )
+
+  write_empty_output(out_file)
   quit(save = "no", status = 0)
 }
 
@@ -370,10 +434,25 @@ for (i in seq_len(nrow(variants))) {
 # 6. Write output
 # -----------------------------
 
-write.table(
-  results,
-  out_file,
-  sep = "\t",
-  quote = FALSE,
-  row.names = FALSE
-)
+if (nrow(results) == 0) {
+  warning(
+    "No IRMA variants could be mapped to VADR CDS features for sample ",
+    sample_id,
+    ". Writing a header-only output."
+  )
+
+  write_empty_output(out_file)
+} else {
+  write.table(
+    results,
+    file = out_file,
+    sep = "	",
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = TRUE
+  )
+}
+
+if (!file.exists(out_file)) {
+  stop("Output file was not created: ", out_file)
+}
