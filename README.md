@@ -5,7 +5,8 @@ APGAP Influenza Pipeline is a Nextflow DSL2 workflow for influenza whole-genome 
 The pipeline performs:
 
 - Read quality control
-- Optional primer trimming
+- Automatic Illumina/Nextera adapter trimming with fastp
+- Optional assay-specific 5' primer trimming with Cutadapt
 - Genome assembly
 - Coverage assessment
 - Influenza segment identification
@@ -23,11 +24,20 @@ The pipeline performs:
 FASTQ Files
     │
     ▼
-(Optional) Primer Trimming
+Raw Read Quality Control
+(FastQC)
     │
     ▼
-Quality Control
-(FastQC → fastp → FastQC → MultiQC)
+(Optional) Assay-Specific 5' Primer Trimming
+(Cutadapt)
+    │
+    ▼
+Adapter and Quality Trimming
+(fastp)
+    │
+    ▼
+Post-Trimming Quality Control
+(FastQC → MultiQC)
     │
     ▼
 IRMA Genome Assembly
@@ -125,7 +135,6 @@ FLU_DB/
     ├── fluA_db.nhr
     ├── fluA_db.nin
     ├── fluA_db.nsq
-    ├── fluA_db.ndb
     └── ...
 ```
 
@@ -165,6 +174,57 @@ and
 
 ---
 
+# Read Trimming
+
+## Illumina and Nextera adapter trimming
+
+Standard Illumina and Nextera adapter contamination is handled automatically by **fastp** during paired-end read processing. The pipeline does not require users to provide Illumina or Nextera adapter sequences for routine runs.
+
+The fastp step performs adapter trimming and quality filtering before IRMA assembly. Adapter-trimmed reads and fastp reports are written under:
+
+```text
+results/trim/fastp/
+```
+
+## Optional assay-specific primer trimming
+
+Cutadapt is reserved for known assay-specific primers, such as primers introduced during targeted amplicon generation. It is disabled by default because the pipeline should not assume that every dataset was generated with the same amplification primers.
+
+Default configuration:
+
+```groovy
+trim_primers = false
+primers_5p_r1 = []
+primers_5p_r2 = []
+```
+
+Enable Cutadapt only when the exact 5' primer sequences used in the laboratory protocol are known:
+
+```bash
+nextflow run main.nf \
+    -profile docker \
+    --reads_dir data \
+    --outdir results \
+    --trim_primers true
+```
+
+The primer sequences should be supplied in `nextflow.config`, for example:
+
+```groovy
+primers_5p_r1 = ["ACTUAL_R1_PRIMER_SEQUENCE"]
+primers_5p_r2 = ["ACTUAL_R2_PRIMER_SEQUENCE"]
+```
+
+Do not use generic influenza terminal primer sequences unless those exact primers were used during sample preparation. Do not use this Cutadapt step for ordinary Illumina or Nextera adapter removal; fastp already handles that stage.
+
+Primer-trimmed reads are written under:
+
+```text
+results/trim/primers/
+```
+
+---
+
 # Running the Pipeline
 
 ## Docker
@@ -193,7 +253,7 @@ Resume a previous run:
 nextflow run main.nf -resume
 ```
 
-After successful completion, review the contents of `results/summary/` for a concise overview of each sample.
+After successful completion, review the contents of `results/summary/` for a concise overview of each sample. Cutadapt will only appear in the process list when `--trim_primers true` is enabled.
 
 ---
 
@@ -256,7 +316,7 @@ results/
 | Directory | Description |
 |-----------|-------------|
 | `qc/` | FastQC and MultiQC reports |
-| `trim/` | Trimmed FASTQ files (optional) |
+| `trim/` | fastp-trimmed reads and optional Cutadapt primer-trimmed reads |
 | `assembly/` | IRMA assemblies and consensus genomes |
 | `coverage/` | Coverage statistics and PASS segment FASTA files |
 | `blast/` | Influenza segment identification |
