@@ -33,8 +33,14 @@ process CUTADAPT_PRIMERS {
   container params.cutadapt_container
 
   script:
-    def g_opts = (params.primers_5p_r1 ?: []).collect { p -> "-g ${p}" }.join(' ')
-    def G_opts = (params.primers_5p_r2 ?: []).collect { p -> "-G ${p}" }.join(' ')
+    def g_opts = (params.primers_5p_r1 ?: [])
+      .collect { p -> "-g ${p}" }
+      .join(' ')
+
+    def G_opts = (params.primers_5p_r2 ?: [])
+      .collect { p -> "-G ${p}" }
+      .join(' ')
+
     def overlap = params.cutadapt_min_overlap ?: 10
     def errrate = params.cutadapt_error_rate ?: 0.1
 
@@ -88,14 +94,16 @@ process FASTP {
 
   script:
   """
-  fastp \
-    -i ${r1} -I ${r2} \
-    -o ${sample_id}_R1.trim.fastq.gz \
-    -O ${sample_id}_R2.trim.fastq.gz \
-    -h ${sample_id}.fastp.html \
-    -j ${sample_id}.fastp.json \
-    -w ${task.cpus}
-  """
+	fastp \
+  	-i ${r1} \
+  	-I ${r2} \
+  	-o ${sample_id}_R1.trim.fastq.gz \
+  	-O ${sample_id}_R2.trim.fastq.gz \
+  	-h ${sample_id}.fastp.html \
+  	-j ${sample_id}.fastp.json \
+  	--detect_adapter_for_pe \
+  	-w ${task.cpus}
+  	"""
 }
 
 process FASTQC_TRIMMED {
@@ -171,11 +179,10 @@ process IRMA_COVERAGE {
 
   script:
   """
-  cp -RL ${sample_dir} irma_input
   cp -L ${coverage_script} irma_coverage_local.R
 
   Rscript irma_coverage_local.R \
-      irma_input \
+      ${sample_dir} \
       ${sample_id} \
       ${params.coverage_threshold}
   """
@@ -251,7 +258,7 @@ process MAP_IRMA_TO_VADR_AA {
   publishDir "${params.outdir}/variant_annotation/${sample_id}", mode: 'copy'
 
   input:
-    tuple val(sample_id), path(vadr_files)
+    tuple val(sample_id), path(vadr_files), path(sample_dir)
     path variant_annotation_script
     path genetic_code
 
@@ -262,15 +269,17 @@ process MAP_IRMA_TO_VADR_AA {
 
   script:
   """
-  Rscript ${variant_annotation_script} \
+  cp -L ${variant_annotation_script} map_irma_to_vadr_aa_local.R
+  cp -L ${genetic_code} genetic_code_local.csv
+
+  Rscript map_irma_to_vadr_aa_local.R \
     --sample_id ${sample_id} \
-    --irma_dir ${projectDir}/${params.outdir}/assembly/irma/${sample_id} \
+    --irma_dir ${sample_dir} \
     --vadr_dir . \
-    --genetic_code ${params.genetic_code} \
+    --genetic_code genetic_code_local.csv \
     --out ${sample_id}.irma_vadr_aa.tsv
   """
 }
-
 process IVAR_USING_IRMA_CONSENSUS {
   tag "$sample_id"
   publishDir "${params.outdir}/variants/ivar_irma_consensus/${sample_id}", mode: 'copy'
@@ -586,13 +595,16 @@ Valid options:
 
   read_pairs = build_read_pairs()
 
-  reads_for_qc = read_pairs
+  // Raw FastQC always evaluates the original input reads.
+  raw_qc = FASTQC_RAW(read_pairs)
+
+  // Primer trimming is optional and occurs before fastp.
+  reads_for_fastp = read_pairs
   if (params.trim_primers) {
-    reads_for_qc = CUTADAPT_PRIMERS(read_pairs)
+    reads_for_fastp = CUTADAPT_PRIMERS(read_pairs)
   }
 
-  raw_qc = FASTQC_RAW(reads_for_qc)
-  trimmed = FASTP(reads_for_qc)
+  trimmed = FASTP(reads_for_fastp)
 
   trimmed_reads = trimmed.map { sid, r1t, r2t, html, json -> tuple(sid, r1t, r2t) }
   fastp_reports = trimmed.map { sid, r1t, r2t, html, json -> [html, json] }.flatten()
@@ -621,12 +633,25 @@ Valid options:
   blast_results = BLASTN_IRMA_PASS_SEGMENTS(irma_coverage)
   vadr_results = VADR_IRMA_PASS_SEGMENTS(irma_coverage)
 
+  vadr_for_variant = vadr_results.map { sid, vadr_files ->
+    tuple(sid, vadr_files)
+  }
+
+  irma_for_variant = irma_results.map { sid, sample_dir ->
+    tuple(sid, sample_dir)
+  }
+
+  variant_annotation_inputs = vadr_for_variant
+    .combine(irma_for_variant, by: 0)
+    .map { sid, vadr_files, sample_dir ->
+      tuple(sid, vadr_files, sample_dir)
+    }
+
   variant_annotation_results = MAP_IRMA_TO_VADR_AA(
-    vadr_results,
+    variant_annotation_inputs,
     file(params.variant_annotation_script),
     file(params.genetic_code)
   )
-
 
   subtype_evidence = SUBTYPE_EVIDENCE(irma_results)
 
