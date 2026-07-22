@@ -1,5 +1,6 @@
 # Nextflow
 .nextflow*
+.nextflow/
 work/
 .nf-work/
 trace.txt*
@@ -12,17 +13,18 @@ results/
 out/
 logs/
 
-# Input data (keep out of git)
-data/
+# Input data
+data/*
+!data/.gitkeep
+
 *.fastq
 *.fastq.gz
 *.fq
 *.fq.gz
 
+# BLAST database and reference files
+FLU_DB/*
+!FLU_DB/.gitkeep
+
 # macOS
 .DS_Store
-.DS_Store
-FLU_DB/
-work/
-results/
-.nextflow/
