@@ -234,23 +234,50 @@ process VADR_IRMA_PASS_SEGMENTS {
           path("${sample_id}.vadr.*"),
           emit: vadr_results
 
-  script:
-  """
-  v-annotate.pl \
-    -f \
-    --split \
-    --cpu ${task.cpus} \
-    -r \
-    --atgonly \
-    --xnocomp \
-    --nomisc \
-    --alt_fail extrant5,extrant3 \
-    --mkey ${params.vadr_mkey} \
-    ${pass_fasta} \
-    ${sample_id}
+script:
+"""
+if [[ ! -s ${pass_fasta} ]]; then
+  echo "No PASS segments for ${sample_id}; skipping VADR annotation."
 
-  mv ${sample_id}/${sample_id}.vadr.* .
-  """
+  printf '' > ${sample_id}.vadr.pass.fa
+  printf '' > ${sample_id}.vadr.fail.fa
+  printf '' > ${sample_id}.vadr.pass.list
+  printf '' > ${sample_id}.vadr.fail.list
+  printf '' > ${sample_id}.vadr.pass.tbl
+  printf '' > ${sample_id}.vadr.fail.tbl
+  printf '' > ${sample_id}.vadr.ftr
+  printf '' > ${sample_id}.vadr.sgm
+  printf '' > ${sample_id}.vadr.sqc
+  printf '' > ${sample_id}.vadr.seqstat
+  printf '' > ${sample_id}.vadr.log
+  printf '' > ${sample_id}.vadr.filelist
+  printf '' > ${sample_id}.vadr.alt
+  printf '' > ${sample_id}.vadr.alt.list
+  printf '' > ${sample_id}.vadr.alc
+  printf '' > ${sample_id}.vadr.dcr
+  printf '' > ${sample_id}.vadr.rpn
+  printf '' > ${sample_id}.vadr.sqa
+  printf '' > ${sample_id}.vadr.cmd
+  printf '' > ${sample_id}.vadr.mdl
+
+  exit 0
+fi
+
+v-annotate.pl \
+  -f \
+  --split \
+  --cpu ${task.cpus} \
+  -r \
+  --atgonly \
+  --xnocomp \
+  --nomisc \
+  --alt_fail extrant5,extrant3 \
+  --mkey ${params.vadr_mkey} \
+  ${pass_fasta} \
+  ${sample_id}
+
+mv ${sample_id}/${sample_id}.vadr.* .
+"""
 }
 
 process MAP_IRMA_TO_VADR_AA {
@@ -280,6 +307,7 @@ process MAP_IRMA_TO_VADR_AA {
     --out ${sample_id}.irma_vadr_aa.tsv
   """
 }
+
 process IVAR_USING_IRMA_CONSENSUS {
   tag "$sample_id"
   publishDir "${params.outdir}/variants/ivar_irma_consensus/${sample_id}", mode: 'copy'

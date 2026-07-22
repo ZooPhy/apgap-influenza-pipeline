@@ -113,7 +113,22 @@ if (!file.exists(vadr_ftr)) {
   stop("Missing VADR feature table: ", vadr_ftr)
 }
 
-fasta_lines <- readLines(vadr_fa)
+if (
+  !file.exists(vadr_fa) ||
+  is.na(file.info(vadr_fa)$size) ||
+  file.info(vadr_fa)$size == 0
+) {
+  warning(
+    "VADR pass FASTA is missing or empty for sample ",
+    sample_id,
+    ". Writing a header-only output."
+  )
+
+  write_empty_output(out_file)
+  quit(save = "no", status = 0)
+}
+
+fasta_lines <- readLines(vadr_fa, warn = FALSE)
 headers <- grep("^>", fasta_lines)
 seqs <- list()
 
@@ -133,7 +148,22 @@ for (i in seq_along(headers)) {
 # 3. Read VADR .ftr CDS features
 # -----------------------------
 
-ftr_lines <- readLines(vadr_ftr)
+if (
+  !file.exists(vadr_ftr) ||
+  is.na(file.info(vadr_ftr)$size) ||
+  file.info(vadr_ftr)$size == 0
+) {
+  warning(
+    "VADR feature table is missing or empty for sample ",
+    sample_id,
+    ". Writing a header-only output."
+  )
+
+  write_empty_output(out_file)
+  quit(save = "no", status = 0)
+}
+
+ftr_lines <- readLines(vadr_ftr, warn = FALSE)
 ftr_lines <- ftr_lines[!grepl("^#", ftr_lines)]
 ftr_lines <- ftr_lines[nchar(trimws(ftr_lines)) > 0]
 
@@ -192,7 +222,14 @@ for (line in ftr_lines) {
 }
 
 if (length(features) == 0) {
-  stop("No CDS features parsed from: ", vadr_ftr)
+  warning(
+    "No CDS features parsed for sample ",
+    sample_id,
+    ". Writing a header-only output."
+  )
+
+  write_empty_output(out_file)
+  quit(save = "no", status = 0)
 }
 
 # -----------------------------
