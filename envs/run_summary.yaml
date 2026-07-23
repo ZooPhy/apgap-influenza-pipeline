@@ -1,0 +1,14 @@
+name: run_summary
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.3
+  - r-readr
+  - r-dplyr
+  - r-tidyr
+  - r-stringr
+  - r-purrr
+  - r-tibble
+  - r-ggplot2
+  - r-patchwork
+  - r-scales
