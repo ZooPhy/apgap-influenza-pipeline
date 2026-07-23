@@ -568,6 +568,8 @@ It includes:
 .
 ├── conf/
 ├── data/
+├── envs/
+│   └── run_summary.yaml
 ├── FLU_DB/
 │   ├── fluA_reference.fasta.zip   (downloaded automatically if needed)
 │   └── fluA_db/                   (generated automatically)
