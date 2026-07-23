@@ -567,6 +567,29 @@ process SUMMARY_REPORT {
   """
 }
 
+process RUN_SUMMARY {
+
+    publishDir "${params.outdir}/run_summary", mode: 'copy'
+
+    input:
+        path summary_tsvs
+        path run_summary_script
+
+    output:
+        path "run_summary.tsv"
+        path "run_summary.md"
+        path "figures"
+        path "tables"
+
+    conda "envs/run_summary.yaml"
+
+    script:
+    """
+	Rscript ${run_summary_script}
+
+    """
+}
+
 workflow {
   def valid_hosts = ['human', 'bird', 'swine', 'environmental', 'other']
 
@@ -711,6 +734,15 @@ Valid options:
     summary_inputs,
     file("${projectDir}/scripts/sample_summary.R")
   )
+  
+  summary_tsvs = summary_report
+    .map { sid, summary_tsv, summary_md -> summary_tsv }
+    .collect()
+
+RUN_SUMMARY(
+    summary_tsvs,
+    file("${projectDir}/scripts/run_summary.R")
+)
 
   /*
    * iVar sections disabled
