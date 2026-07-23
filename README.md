@@ -544,6 +544,7 @@ results/run_summary/
     └── samples_requiring_review.tsv
 ```
 The run summary provides a high-level overview of sequencing performance and analytical results across the entire sequencing run.
+The report is intended to provide a rapid quality-control overview of an entire sequencing run while preserving detailed per-sample reports for downstream investigation.  
 
 It includes:
 
@@ -559,7 +560,6 @@ It includes:
 - Influenza subtype summary
 - Per-sample summary table
 
-The report is intended to provide a rapid quality-control overview of an entire sequencing run while preserving detailed per-sample reports for downstream investigation.  
 ---
 
 # Repository Structure
