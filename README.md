@@ -1,7 +1,6 @@
 # APGAP Influenza Pipeline
 
-APGAP Influenza Pipeline is a Nextflow DSL2 workflow for influenza whole-genome analysis from paired-end Illumina sequencing data. The pipeline integrates **IRMA**, **BLAST**, and **VADR** to generate consensus genomes, identify influenza segments, annotate coding sequences, characterize amino acid variants, and produce integrated per-sample summary reports.
-
+APGAP Influenza Pipeline is a Nextflow DSL2 workflow for influenza whole-genome analysis from paired-end Illumina sequencing data. The pipeline integrates **IRMA**, **BLAST**, and **VADR** to generate consensus genomes, identify influenza segments, annotate coding sequences, characterize amino acid variants, produce integrated per-sample summary reports, and generate a comprehensive run-level quality control report that summarizes sequencing performance across all samples.
 The pipeline performs:
 
 - Read quality control
@@ -15,6 +14,8 @@ The pipeline performs:
 - Coverage-aware influenza A subtype determination
 - Host-aware subtype interpretation
 - Integrated summary reporting
+- Run-level quality control reporting
+
 
 ---
 
@@ -65,8 +66,11 @@ Subtype Evidence
 (IRMA HA/NA coverage and breadth)
     │
     ▼
-Summary Report
-(Per-sample interpretation with host-aware review flags)
+Per-sample Summary Reports
+    │
+    ▼
+Run Summary Report
+(Multi-sample quality control and sequencing overview)
     │
     ▼
 Final Results
@@ -253,8 +257,12 @@ Resume a previous run:
 nextflow run main.nf -resume
 ```
 
-After successful completion, review the contents of `results/summary/` for a concise overview of each sample. Cutadapt will only appear in the process list when `--trim_primers true` is enabled.
+After successful completion:
 
+- Review `results/run_summary/run_summary.md` for an overview of the entire sequencing run.
+- Review `results/summary/` for detailed per-sample reports.
+
+Cutadapt will only appear in the process list when `--trim_primers true` is enabled.
 ---
 
 # Running on a SLURM Cluster
@@ -308,7 +316,8 @@ results/
 ├── vadr/
 ├── variant_annotation/
 ├── subtype/
-└── summary/
+├── summary/
+└── run_summary/
 ```
 
 ## Output Directories
@@ -324,6 +333,7 @@ results/
 | `variant_annotation/` | Amino acid variant annotations |
 | `subtype/` | Per-sample HA and NA subtype evidence derived from IRMA subtype-specific BAM files |
 | `summary/` | Integrated per-sample summary reports, including host-aware subtype interpretation |
+| `run_summary/` | Run-level quality control report, figures, and aggregated summary tables |
 
 ---
 
@@ -502,16 +512,54 @@ Each sample summary includes:
 - Number of nonsynonymous substitutions
 - Stop-gained and stop-lost mutations (if present)
 
-Outputs include:
+For each sample, the pipeline generates:
 
 ```text
 results/summary/
-├── sample.sample_summary.tsv
-└── sample.sample_summary.md
+├── sample1.sample_summary.tsv
+├── sample1.sample_summary.md
+├── sample2.sample_summary.tsv
+├── sample2.sample_summary.md
+└── ...
 ```
 
 The Markdown report is intended for quick interpretation without inspecting each module individually. Subtype calls are reported as potential analytical results and should be interpreted together with host context, segment coverage, controls, and other samples from the sequencing run.
 
+---
+
+# Run Summary Report
+
+After all samples have been processed, the pipeline automatically generates a run-level summary by aggregating all per-sample summary tables.
+
+Outputs include:
+
+```text
+results/run_summary/
+├── run_summary.md
+├── run_summary.tsv
+├── figures/
+│   ├── run_summary.png
+│   └── run_summary.pdf
+└── tables/
+    └── samples_requiring_review.tsv
+```
+The run summary provides a high-level overview of sequencing performance and analytical results across the entire sequencing run.
+
+It includes:
+
+- Overall sequencing statistics
+- Counts of complete, near-complete, partial, and failed genomes
+- Samples requiring immediate review
+- Influenza subtype distribution
+- Distribution of PASS genome segments
+- Summary of review categories
+- HA versus NA median depth comparison
+- Amino acid variant burden
+- Host category summary
+- Influenza subtype summary
+- Per-sample summary table
+
+The report is intended to provide a rapid quality-control overview of an entire sequencing run while preserving detailed per-sample reports for downstream investigation.  
 ---
 
 # Repository Structure
@@ -529,7 +577,8 @@ The Markdown report is intended for quick interpretation without inspecting each
 │   ├── build_blast_db.sh
 │   ├── irma_coverage.R
 │   ├── map_irma_to_vadr_aa.R
-│   └── sample_summary.R
+│   ├── sample_summary.R
+│   └── run_summary.R
 ├── main.nf
 ├── nextflow.config
 └── README.md
