@@ -540,7 +540,7 @@ process SUMMARY_REPORT {
           path("${sample_id}.sample_summary.tsv"),
           path("${sample_id}.sample_summary.md")
 
-  container params.r_base_container
+  container params.run_summary_container
 
   script:
   """
@@ -574,22 +574,28 @@ process RUN_SUMMARY {
     input:
         path summary_tsvs
         path run_summary_script
+        path run_summary_qmd
 
     output:
         path "run_summary.tsv"
         path "run_summary.md"
+        path "run_summary.html"
         path "figures"
         path "tables"
 
-    conda "envs/run_summary.yaml"
+    container params.run_summary_container
 
     script:
     """
-	Rscript ${run_summary_script}
+    # Generate TSV, figures, tables, and Markdown
+    Rscript ${run_summary_script}
 
+    # Render interactive HTML report
+    quarto render ${run_summary_qmd} \
+        --to html \
+        --output run_summary.html
     """
 }
-
 workflow {
   def valid_hosts = ['human', 'bird', 'swine', 'environmental', 'other']
 
@@ -741,7 +747,8 @@ Valid options:
 
 RUN_SUMMARY(
     summary_tsvs,
-    file("${projectDir}/scripts/run_summary.R")
+    file("${projectDir}/scripts/run_summary.R"),
+    file("${projectDir}/scripts/run_summary.qmd")
 )
 
   /*

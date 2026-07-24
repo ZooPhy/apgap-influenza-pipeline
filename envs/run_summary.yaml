@@ -1,8 +1,12 @@
-name: run_summary
 channels:
   - conda-forge
+  - bioconda
+  - defaults
+
 dependencies:
-  - r-base=4.3
+  - quarto
+  - pandoc
+  - r-base
   - r-readr
   - r-dplyr
   - r-tidyr
@@ -12,3 +16,8 @@ dependencies:
   - r-ggplot2
   - r-patchwork
   - r-scales
+  - r-knitr
+  - r-rmarkdown
+  - r-dt
+  - r-plotly
+  - r-htmlwidgets

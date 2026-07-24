@@ -1,0 +1,393 @@
+---
+title: "APGAP Influenza Pipeline"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    page-layout: full
+    embed-resources: true
+    css: run_summary.css
+
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(htmltools)
+library(knitr)
+library(gt)
+
+
+summary <- read_tsv(
+    "run_summary.tsv",
+    show_col_types = FALSE
+)
+
+review <- read_tsv(
+    "tables/samples_requiring_review.tsv",
+    show_col_types = FALSE
+)
+```
+
+<div class="title-banner">
+
+# APGAP Influenza Pipeline
+
+## Run Summary Report
+
+Influenza Whole-Genome Sequencing
+
+Arizona State University
+
+</div>
+
+## Overview
+
+```{r}
+div(
+  class = "dashboard",
+
+  div(
+    class = "value-box complete",
+    h2(nrow(summary)),
+    p("Samples")
+  ),
+
+  div(
+    class = "value-box complete",
+    h2(sum(summary$pass_segments == 8)),
+    p("Complete")
+  ),
+
+  div(
+    class = "value-box nearcomplete",
+    h2(sum(summary$pass_segments >= 6 &
+           summary$pass_segments < 8)),
+    p("Near-complete")
+  ),
+
+  div(
+    class = "value-box partial",
+    h2(sum(summary$pass_segments >= 1 &
+           summary$pass_segments < 6)),
+    p("Partial")
+  ),
+
+  div(
+    class = "value-box failed",
+    h2(sum(summary$pass_segments == 0)),
+    p("Failed")
+  ),
+
+  div(
+    class = "value-box review",
+    h2(sum(summary$review_required)),
+    p("Review")
+  )
+
+)
+```
+
+```{r}
+metadata <- tibble(
+  Metric = c(
+    "Run date",
+    "Host",
+    "Pipeline version"
+  ),
+  Value = c(
+    format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    unique(summary$host),
+    "0.1.0"
+  )
+)
+```
+
+# ⚠ Samples Requiring Immediate Review
+
+```{r}
+n_review <- nrow(review)
+
+if (n_review == 0) {
+
+  div(
+    class = "alert alert-success",
+    h4("✓ No samples require manual review."),
+    p("All samples passed the configured QC thresholds.")
+  )
+
+} else {
+
+review |>
+  select(
+    sample_id,
+    host,
+    potential_subtype,
+    genome_status,
+    review_reason
+  ) |>
+  gt() |>
+  tab_header(
+    title = "⚠ Samples Requiring Manual Review"
+  )
+
+}
+```
+
+# Sample Summary
+
+```{r}
+sample_table <-
+  summary %>%
+  mutate(
+    QC = genome_status,
+
+    Review = if_else(
+      review_required,
+      "⚠ Review",
+      "✓ OK"
+    ),
+
+    Report = sprintf(
+      "[📄 Report](../summary/%s.sample_summary.html)",
+      sample_id
+    )
+  ) %>%
+  select(
+    sample_id,
+    QC,
+    Review,
+    host,
+    potential_subtype,
+    ha_call,
+    na_call,
+    pass_segments,
+    subtype_min_median_depth,
+    aa_changes,
+    synonymous_changes,
+    nonsynonymous_changes,
+    Report
+  )
+
+sample_table |>
+  gt() |>
+  tab_header(
+    title = "Sample Summary"
+  ) |>
+  cols_label(
+    sample_id = "Sample",
+    QC = "QC Status",
+    Review = "Review",
+    host = "Host",
+    potential_subtype = "Predicted Subtype",
+    ha_call = "HA",
+    na_call = "NA",
+    pass_segments = "Passing Segments",
+    subtype_min_median_depth = "Min Median Depth",
+    aa_changes = "AA Changes",
+    synonymous_changes = "Synonymous",
+    nonsynonymous_changes = "Nonsynonymous",
+    Report = "Sample Report"
+  ) |>
+  fmt_markdown(
+    columns = Report
+  ) |>
+  tab_options(
+    table.width = pct(100),
+    table.font.size = px(13),
+    heading.background.color = "#8C1D40",
+    heading.title.font.size = px(18)
+  )
+```
+
+# Genome Completeness
+
+```{r}
+
+asu_palette <- c(
+  Complete="#8C1D40",
+  "Near-complete"="#A95670FF",
+  Partial="#C58E9FFF",
+  Failed="#DFC9CFFF"
+)
+
+genome_status <-
+  summary %>%
+  count(genome_status) %>%
+  mutate(
+    genome_status = factor(
+      genome_status,
+      levels = c(
+        "Complete",
+        "Near-complete",
+        "Partial",
+        "Failed"
+      )
+    )
+  )
+
+p <- ggplot(
+  genome_status,
+  aes(
+    genome_status,
+    n,
+    fill = genome_status
+  )
+) +
+  geom_col(width = 0.7) +
+  geom_text(
+    aes(label = n),
+    vjust = -0.3,
+    size = 5
+  ) +
+  scale_fill_manual(values = asu_palette) +
+  labs(
+    x = "Genome Status",
+    y = "Samples"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none"
+  )
+p
+```
+
+# HA Subtype Distribution
+
+```{r}
+ha_counts <- summary %>%
+    count(ha_call)
+
+p <- ggplot(
+  ha_counts,
+  aes(
+    x = reorder(ha_call, n),
+    y = n
+  )
+) +
+  geom_col(
+    fill = "#8C1D40",
+    width = 0.7
+  ) +
+  coord_flip() +
+  labs(
+    x = "HA Subtype",
+    y = "Samples"
+  ) +
+  theme_minimal(base_size = 14)
+
+p
+```
+
+# NA Subtype Distribution
+
+```{r}
+na_counts <- summary %>%
+    count(na_call)
+
+p <- ggplot(
+  na_counts,
+  aes(
+    x = reorder(na_call, n),
+    y = n
+  )
+) +
+  geom_col(
+    fill = "#FFC627",
+    width = 0.7
+  ) +
+  coord_flip() +
+  labs(
+    x = "NA Subtype",
+    y = "Samples"
+  ) +
+  theme_minimal(base_size = 14)
+
+p
+```
+
+# Host Distribution
+
+```{r}
+host_counts <-
+  summary %>%
+  count(host)
+
+p <- ggplot(
+  host_counts,
+  aes(
+    reorder(host, n),
+    n
+  )
+) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "Host",
+    y = "Samples"
+  ) +
+  theme_minimal(base_size = 14)
+
+p
+```
+
+# Average Coverage
+
+```{r}
+p <- ggplot(
+  summary,
+  aes(subtype_min_median_depth)
+) +
+ geom_histogram(
+  bins = 30,
+  fill = "#8C1D40",
+  color = "white"
+) +
+  labs(
+    x = "Mean depth",
+    y = "Samples"
+  ) +
+  theme_minimal(base_size = 14)
+
+p
+```
+
+# Sequencing Depth Distribution
+
+```{r}
+p <- ggplot(
+  summary,
+  aes(pass_segments)
+) +
+  geom_histogram(
+  binwidth = 1,
+  fill = "#FFC627",
+  color = "white"
+) +
+  scale_x_continuous(breaks = 0:8) +
+  labs(
+    x = "Passing genome segments",
+    y = "Samples"
+  ) +
+  theme_minimal(base_size = 14)
+
+p
+```
+
+# Publication-quality Summary Figure
+
+::: {.center-figure}
+
+```{r}
+knitr::include_graphics("figures/run_summary.png")
+```
+
+:::
+```
