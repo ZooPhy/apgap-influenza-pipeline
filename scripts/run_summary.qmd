@@ -226,7 +226,16 @@ p
 ## HA Subtype Distribution
 
 ```{r}
-ha_counts <- summary %>%
+ha_counts <-
+  summary %>%
+  mutate(
+    ha_call = case_when(
+      is.na(ha_call) ~ "Undetermined",
+      ha_call == "NA" ~ "Undetermined",
+      ha_call == "" ~ "Undetermined",
+      TRUE ~ ha_call
+    )
+  ) %>%
   count(ha_call)
 
 p <- ggplot(
@@ -240,12 +249,24 @@ p <- ggplot(
     fill = "#8C1D40",
     width = 0.7
   ) +
+  geom_text(
+    aes(label = n),
+    hjust = -0.2,
+    size = 5
+  ) +
   coord_flip() +
+  scale_x_discrete(
+    limits = rev(levels(reorder(ha_counts$ha_call, ha_counts$n)))
+  ) +
   labs(
     x = "HA Subtype",
     y = "Samples"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
 
 p
 ```
@@ -253,7 +274,16 @@ p
 ## NA Subtype Distribution
 
 ```{r}
-na_counts <- summary %>%
+na_counts <-
+  summary %>%
+  mutate(
+    na_call = case_when(
+      is.na(na_call) ~ "Undetermined",
+      na_call == "NA" ~ "Undetermined",
+      na_call == "" ~ "Undetermined",
+      TRUE ~ na_call
+    )
+  ) %>%
   count(na_call)
 
 p <- ggplot(
@@ -267,12 +297,24 @@ p <- ggplot(
     fill = "#FFC627",
     width = 0.7
   ) +
+  geom_text(
+    aes(label = n),
+    hjust = -0.2,
+    size = 5
+  ) +
   coord_flip() +
+  scale_x_discrete(
+    limits = rev(levels(reorder(na_counts$na_call, na_counts$n)))
+  ) +
   labs(
     x = "NA Subtype",
     y = "Samples"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
 
 p
 ```
