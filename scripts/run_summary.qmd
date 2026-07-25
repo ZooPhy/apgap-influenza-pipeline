@@ -347,45 +347,58 @@ p <- ggplot(
 p
 ```
 
-## Average Coverage
+## Genome Segment Recovery
+
+The figure below summarizes the number of samples in which each influenza genome segment met the configured coverage threshold and was classified as a PASS segment. This provides a rapid assessment of segment-specific sequencing performance across the entire run and helps identify genome segments that are consistently underrepresented or more difficult to recover.
 
 ```{r}
+segment_order <- c("PB2", "PB1", "PA", "HA", "NP", "NA", "MP", "NS")
+
+segment_counts <-
+  summary %>%
+  mutate(
+    blast_segments = ifelse(
+      is.na(blast_segments),
+      "",
+      blast_segments
+    )
+  ) %>%
+  mutate(
+    segment = strsplit(blast_segments, ",")
+  ) %>%
+  tidyr::unnest(segment) %>%
+  mutate(
+    segment = sub("^.*_", "", segment),
+    segment = factor(segment, levels = segment_order)
+  ) %>%
+  count(segment, .drop = FALSE)
+
 p <- ggplot(
-  summary,
-  aes(subtype_min_median_depth)
+  segment_counts,
+  aes(
+    x = segment,
+    y = n
+  )
 ) +
-  geom_histogram(
-    bins = 30,
+  geom_col(
     fill = "#8C1D40",
-    color = "white"
+    width = 0.7
+  ) +
+  geom_text(
+    aes(label = n),
+    vjust = -0.3,
+    size = 5
   ) +
   labs(
-    x = "Mean depth",
-    y = "Samples"
+    x = "Genome Segment",
+    y = "Samples with PASS Segment"
   ) +
-  theme_minimal(base_size = 14)
-
-p
-```
-
-## Sequencing Depth Distribution
-
-```{r}
-p <- ggplot(
-  summary,
-  aes(pass_segments)
-) +
-  geom_histogram(
-    binwidth = 1,
-    fill = "#FFC627",
-    color = "white"
-  ) +
-  scale_x_continuous(breaks = 0:8) +
-  labs(
-    x = "Passing genome segments",
-    y = "Samples"
-  ) +
-  theme_minimal(base_size = 14)
+  expand_limits(y = max(segment_counts$n) + 1) +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
 
 p
 ```
