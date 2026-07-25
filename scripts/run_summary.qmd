@@ -1,6 +1,6 @@
 ---
 title: "APGAP Influenza Pipeline"
-
+subtitle: "Run Summary Report"
 format:
   html:
     theme: cosmo
@@ -8,8 +8,7 @@ format:
     toc-depth: 2
     page-layout: full
     embed-resources: true
-    css: run_summary.css
-
+    css: run_summary_modern.css
 execute:
   echo: false
   warning: false
@@ -24,141 +23,113 @@ library(htmltools)
 library(knitr)
 library(gt)
 
+summary <- read_tsv("run_summary.tsv", show_col_types = FALSE)
+review <- read_tsv("tables/samples_requiring_review.tsv", show_col_types = FALSE)
 
-summary <- read_tsv(
-    "run_summary.tsv",
-    show_col_types = FALSE
-)
-
-review <- read_tsv(
-    "tables/samples_requiring_review.tsv",
-    show_col_types = FALSE
+metadata <- tibble(
+  Metric = c("Run date", "Host", "Pipeline version"),
+  Value = c(
+    format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+    paste(unique(summary$host), collapse = ", "),
+    "1.0.0"
+  )
 )
 ```
-
-<div class="title-banner">
-
-# APGAP Influenza Pipeline
-
-## Run Summary Report
-
-Influenza Whole-Genome Sequencing
-
-Arizona State University
-
-</div>
 
 ## Overview
 
 ```{r}
-div(
-  class = "dashboard",
-
-  div(
-    class = "value-box complete",
-    h2(nrow(summary)),
-    p("Samples")
+overview_tbl <- tibble::tibble(
+  Metric = c("Samples", "Complete", "Near-complete", "Partial", "Failed"),
+  Count = c(
+    nrow(summary),
+    sum(summary$genome_status == "Complete"),
+    sum(summary$genome_status == "Near-complete"),
+    sum(summary$genome_status == "Partial"),
+    sum(summary$genome_status == "Failed")
   ),
-
-  div(
-    class = "value-box complete",
-    h2(sum(summary$pass_segments == 8)),
-    p("Complete")
-  ),
-
-  div(
-    class = "value-box nearcomplete",
-    h2(sum(summary$pass_segments >= 6 &
-           summary$pass_segments < 8)),
-    p("Near-complete")
-  ),
-
-  div(
-    class = "value-box partial",
-    h2(sum(summary$pass_segments >= 1 &
-           summary$pass_segments < 6)),
-    p("Partial")
-  ),
-
-  div(
-    class = "value-box failed",
-    h2(sum(summary$pass_segments == 0)),
-    p("Failed")
-  ),
-
-  div(
-    class = "value-box review",
-    h2(sum(summary$review_required)),
-    p("Review")
-  )
-
-)
-```
-
-```{r}
-metadata <- tibble(
-  Metric = c(
-    "Run date",
-    "Host",
-    "Pipeline version"
-  ),
-  Value = c(
-    format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-    unique(summary$host),
-    "0.1.0"
+  Percent = c(
+    1,
+    sum(summary$genome_status == "Complete") / nrow(summary),
+    sum(summary$genome_status == "Near-complete") / nrow(summary),
+    sum(summary$genome_status == "Partial") / nrow(summary),
+    sum(summary$genome_status == "Failed") / nrow(summary)
   )
 )
-```
 
-# ⚠ Samples Requiring Immediate Review
-
-```{r}
-n_review <- nrow(review)
-
-if (n_review == 0) {
-
-  div(
-    class = "alert alert-success",
-    h4("✓ No samples require manual review."),
-    p("All samples passed the configured QC thresholds.")
-  )
-
-} else {
-
-review |>
-  select(
-    sample_id,
-    host,
-    potential_subtype,
-    genome_status,
-    review_reason
-  ) |>
+overview_tbl |>
   gt() |>
   tab_header(
-    title = "⚠ Samples Requiring Manual Review"
+    title = "Run Overview",
+    subtitle = "Genome completeness across all samples"
+  ) |>
+  cols_label(
+    Metric = "",
+    Count = "Count",
+    Percent = "Percent"
+  ) |>
+  fmt_number(
+    columns = Count,
+    decimals = 0
+  ) |>
+  fmt_percent(
+    columns = Percent,
+    decimals = 0
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#E9F5EB"),
+    locations = cells_body(rows = Metric == "Complete")
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#FFF3D6"),
+    locations = cells_body(rows = Metric == "Near-complete")
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#FDE8DD"),
+    locations = cells_body(rows = Metric == "Partial")
+  ) |>
+  tab_style(
+    style = cell_fill(color = "#F9D9DE"),
+    locations = cells_body(rows = Metric == "Failed")
+  ) |>
+  tab_options(
+    table.width = pct(100),
+    table.font.size = px(14),
+    heading.background.color = "#8C1D40",
+    heading.title.font.size = px(18)
   )
 
-}
+### Run Metadata
+
+```{r}
+metadata |>
+  gt() |>
+  tab_options(
+    table.width = pct(60),
+    table.font.size = px(14),
+    heading.background.color = "#8C1D40",
+    heading.title.font.size = px(18)
+  )
 ```
 
-# Sample Summary
+:::
+
+## Sample Summary
 
 ```{r}
 sample_table <-
   summary %>%
   mutate(
     QC = genome_status,
-
     Review = if_else(
       review_required,
       "⚠ Review",
       "✓ OK"
     ),
-
     Report = sprintf(
-      "[📄 Report](../summary/%s.sample_summary.html)",
-      sample_id
-    )
+  '<a href="../summary/%s.sample_summary.md" target="_blank">📄 Report</a>',
+  sample_id
+)
   ) %>%
   select(
     sample_id,
@@ -196,9 +167,7 @@ sample_table |>
     nonsynonymous_changes = "Nonsynonymous",
     Report = "Sample Report"
   ) |>
-  fmt_markdown(
-    columns = Report
-  ) |>
+  fmt_markdown(columns = Report) |>
   tab_options(
     table.width = pct(100),
     table.font.size = px(13),
@@ -207,15 +176,14 @@ sample_table |>
   )
 ```
 
-# Genome Completeness
+## Genome Completeness
 
 ```{r}
-
 asu_palette <- c(
-  Complete="#8C1D40",
-  "Near-complete"="#A95670FF",
-  Partial="#C58E9FFF",
-  Failed="#DFC9CFFF"
+  Complete = "#8C1D40",
+  "Near-complete" = "#A95670FF",
+  Partial = "#C58E9FFF",
+  Failed = "#DFC9CFFF"
 )
 
 genome_status <-
@@ -224,12 +192,7 @@ genome_status <-
   mutate(
     genome_status = factor(
       genome_status,
-      levels = c(
-        "Complete",
-        "Near-complete",
-        "Partial",
-        "Failed"
-      )
+      levels = c("Complete", "Near-complete", "Partial", "Failed")
     )
   )
 
@@ -256,14 +219,15 @@ p <- ggplot(
   theme(
     legend.position = "none"
   )
+
 p
 ```
 
-# HA Subtype Distribution
+## HA Subtype Distribution
 
 ```{r}
 ha_counts <- summary %>%
-    count(ha_call)
+  count(ha_call)
 
 p <- ggplot(
   ha_counts,
@@ -286,11 +250,11 @@ p <- ggplot(
 p
 ```
 
-# NA Subtype Distribution
+## NA Subtype Distribution
 
 ```{r}
 na_counts <- summary %>%
-    count(na_call)
+  count(na_call)
 
 p <- ggplot(
   na_counts,
@@ -313,7 +277,7 @@ p <- ggplot(
 p
 ```
 
-# Host Distribution
+## Host Distribution
 
 ```{r}
 host_counts <-
@@ -327,7 +291,10 @@ p <- ggplot(
     n
   )
 ) +
-  geom_col() +
+  geom_col(
+    fill = "#8C1D40",
+    width = 0.7
+  ) +
   coord_flip() +
   labs(
     x = "Host",
@@ -338,18 +305,18 @@ p <- ggplot(
 p
 ```
 
-# Average Coverage
+## Average Coverage
 
 ```{r}
 p <- ggplot(
   summary,
   aes(subtype_min_median_depth)
 ) +
- geom_histogram(
-  bins = 30,
-  fill = "#8C1D40",
-  color = "white"
-) +
+  geom_histogram(
+    bins = 30,
+    fill = "#8C1D40",
+    color = "white"
+  ) +
   labs(
     x = "Mean depth",
     y = "Samples"
@@ -359,7 +326,7 @@ p <- ggplot(
 p
 ```
 
-# Sequencing Depth Distribution
+## Sequencing Depth Distribution
 
 ```{r}
 p <- ggplot(
@@ -367,10 +334,10 @@ p <- ggplot(
   aes(pass_segments)
 ) +
   geom_histogram(
-  binwidth = 1,
-  fill = "#FFC627",
-  color = "white"
-) +
+    binwidth = 1,
+    fill = "#FFC627",
+    color = "white"
+  ) +
   scale_x_continuous(breaks = 0:8) +
   labs(
     x = "Passing genome segments",
@@ -381,7 +348,7 @@ p <- ggplot(
 p
 ```
 
-# Publication-quality Summary Figure
+## Publication-quality Summary Figure
 
 ::: {.center-figure}
 
@@ -390,4 +357,3 @@ knitr::include_graphics("figures/run_summary.png")
 ```
 
 :::
-```

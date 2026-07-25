@@ -241,6 +241,8 @@ nextflow run main.nf \
     --host human
 ```
 
+The run-summary step uses a Quarto reporting container published to GitHub Container Registry (GHCR). The pipeline will pull the image automatically during execution. If the GHCR package is private, authenticate with GitHub Packages before running the pipeline.
+
 ## Apptainer
 
 ```bash
@@ -259,11 +261,10 @@ nextflow run main.nf -resume
 
 After successful completion:
 
-- Review `results/run_summary/run_summary.md` for an overview of the entire sequencing run.
+- Review `results/run_summary/run_summary.html` for an overview of the entire sequencing run.
 - Review `results/summary/` for detailed per-sample reports.
 
 Cutadapt will only appear in the process list when `--trim_primers true` is enabled.
----
 
 # Running on a SLURM Cluster
 
@@ -332,10 +333,8 @@ results/
 | `vadr/` | Gene and CDS annotations |
 | `variant_annotation/` | Amino acid variant annotations |
 | `subtype/` | Per-sample HA and NA subtype evidence derived from IRMA subtype-specific BAM files |
-| `summary/` | Integrated per-sample summary reports, including host-aware subtype interpretation |
-| `run_summary/` | Run-level quality control report, figures, and aggregated summary tables |
-
----
+| `summary/` | Integrated per-sample summary reports, including host-aware subtype interpretation (`.tsv`, `.md`, `.html`) |
+| `run_summary/` | Run-level quality control report, figures, and aggregated summary tables (`.tsv`, `.md`, `.html`) |
 
 # Coverage Assessment
 
@@ -518,14 +517,14 @@ For each sample, the pipeline generates:
 results/summary/
 ├── sample1.sample_summary.tsv
 ├── sample1.sample_summary.md
+├── sample1.sample_summary.html
 ├── sample2.sample_summary.tsv
 ├── sample2.sample_summary.md
+├── sample2.sample_summary.html
 └── ...
 ```
 
-The Markdown report is intended for quick interpretation without inspecting each module individually. Subtype calls are reported as potential analytical results and should be interpreted together with host context, segment coverage, controls, and other samples from the sequencing run.
-
----
+The HTML report is intended for quick interpretation without inspecting each module individually. Subtype calls are reported as potential analytical results and should be interpreted together with host context, segment coverage, controls, and other samples from the sequencing run.
 
 # Run Summary Report
 
@@ -535,6 +534,7 @@ Outputs include:
 
 ```text
 results/run_summary/
+├── run_summary.html
 ├── run_summary.md
 ├── run_summary.tsv
 ├── figures/
@@ -543,8 +543,8 @@ results/run_summary/
 └── tables/
     └── samples_requiring_review.tsv
 ```
-The run summary provides a high-level overview of sequencing performance and analytical results across the entire sequencing run.
-The report is intended to provide a rapid quality-control overview of an entire sequencing run while preserving detailed per-sample reports for downstream investigation.  
+
+The run summary provides a high-level overview of sequencing performance and analytical results across the entire sequencing run. The report is intended to provide a rapid quality-control overview of an entire sequencing run while preserving detailed per-sample reports for downstream investigation.
 
 It includes:
 
@@ -560,14 +560,15 @@ It includes:
 - Influenza subtype summary
 - Per-sample summary table
 
----
-
 # Repository Structure
 
 ```text
 .
 ├── conf/
 ├── data/
+├── docker/
+│   └── run_summary/
+│       └── Dockerfile
 ├── envs/
 │   └── run_summary.yaml
 ├── FLU_DB/
@@ -585,3 +586,4 @@ It includes:
 ├── nextflow.config
 └── README.md
 ```
+

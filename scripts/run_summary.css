@@ -1,240 +1,387 @@
 /* --------------------------------------------------
    APGAP Influenza Pipeline
    Arizona State University
+   Modern dashboard styling for Quarto run summary
 ---------------------------------------------------*/
 
 :root {
+  --asu-maroon: #8C1D40;
+  --asu-gold: #FFC627;
+  --asu-blue: #1976D2;
+  --asu-green: #2E7D32;
+  --asu-orange: #F57C00;
+  --asu-red: #C62828;
 
-    --asu-maroon: #8C1D40;
-    --asu-gold: #FFC627;
+  --light-gray: #F7F7F7;
+  --mid-gray: #DDDDDD;
+  --dark-gray: #444444;
+  --page-bg: #f3f6fb;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 4px 14px rgba(15, 23, 42, 0.06);
+  --radius: 16px;
+}
 
-    --light-gray: #F7F7F7;
-    --mid-gray: #DDDDDD;
-    --dark-gray: #444444;
-
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
+  font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  color: #1f2937;
+  background: linear-gradient(180deg, #f8fbff 0%, var(--page-bg) 100%);
 }
 
+/* Content area */
+.quarto-container,
+#quarto-document-content,
+main,
+.content {
+  background: transparent;
+}
+
+/* Title / document header */
+#title-block-header,
+.quarto-title-block {
+  background: linear-gradient(135deg, #102a4d 0%, #0f2340 55%, #1a3a6b 100%);
+  color: #ffffff;
+  padding: 28px 32px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin: 18px 0 28px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+#title-block-header::after,
+.quarto-title-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.14), transparent 22%),
+              radial-gradient(circle at 72% 40%, rgba(25, 118, 210, 0.30), transparent 22%),
+              radial-gradient(circle at 92% 64%, rgba(255, 198, 39, 0.18), transparent 18%);
+  pointer-events: none;
+}
+
+#title-block-header h1,
+.quarto-title-block h1,
+.quarto-title-block .title {
+  color: #ffffff;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+#title-block-header .subtitle,
+.quarto-title-block .subtitle {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.05rem;
+  margin-top: 0.35rem;
+}
+
+/* Headings */
 h1 {
-
-    color: white;
-
-    background: var(--asu-maroon);
-
-    padding: 18px;
-
-    border-radius: 8px;
-
-    margin-bottom: 30px;
-
+  color: var(--asu-maroon);
+  font-size: clamp(1.9rem, 3vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.3rem;
+  border-bottom: 4px solid rgba(255, 198, 39, 0.95);
 }
 
 h2 {
-
-    color: var(--asu-maroon);
-
-    border-bottom: 4px solid var(--asu-gold);
-
-    padding-bottom: 6px;
-
-    margin-top: 35px;
-
+  color: var(--asu-maroon);
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  font-weight: 800;
+  padding-bottom: 0.35rem;
+  margin-top: 2rem;
+  border-bottom: 3px solid rgba(255, 198, 39, 0.75);
 }
 
 h3 {
-
-    color: var(--asu-maroon);
-
+  color: var(--asu-maroon);
+  font-weight: 700;
+  margin-top: 1.5rem;
 }
 
-table.dataTable {
-
-    font-size: 0.9em;
-
+/* Paragraph rhythm */
+p, li {
+  color: #334155;
 }
 
-img {
-
-    border: 1px solid var(--mid-gray);
-
-    border-radius: 8px;
-
-    padding: 8px;
-
-    background: white;
-
+/* Table of contents */
+#TOC {
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 18px 18px 12px 18px;
 }
 
-.figure-caption {
-
-    text-align: center;
-
-    color: #666666;
-
-    font-style: italic;
-
+#TOC .toc-title {
+  color: var(--asu-maroon);
+  font-weight: 800;
+  margin-bottom: 0.6rem;
 }
 
-code {
-
-    color: var(--asu-maroon);
-
+#TOC a {
+  color: #1f3b66;
+  text-decoration: none;
 }
 
-pre {
-
-    border-left: 5px solid var(--asu-gold);
-
+#TOC a:hover {
+  color: var(--asu-maroon);
+  text-decoration: underline;
 }
 
-.card {
-
-    border-radius: 8px;
-
-    border: 1px solid var(--mid-gray);
-
-    box-shadow: 2px 2px 8px rgba(0,0,0,.08);
-
+/* Dashboard cards */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 18px;
+  margin: 1.25rem 0 1.5rem 0;
 }
 
 .value-box {
-
-    color: white;
-
-    text-align: center;
-
-    padding: 18px;
-
-    border-radius: 8px;
-
-    margin-bottom: 15px;
-
+  color: white;
+  text-align: center;
+  padding: 24px 18px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.18);
 }
 
 .value-box h2 {
-
-    color: white;
-
-    border: none;
-
-    margin: 0;
-
-    padding: 0;
-
+  color: white;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1;
 }
 
 .value-box p {
-
-    margin: 0;
-
-    font-size: 0.95em;
-
+  margin: 0.45rem 0 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.95);
 }
 
-/* Genome status */
-
 .complete {
-
-    background: #2E7D32;
-
+  background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%);
 }
 
 .nearcomplete {
-
-    background: #1976D2;
-
+  background: linear-gradient(135deg, #F57C00 0%, #FB8C00 100%);
 }
 
 .partial {
+  background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%);
+  color: #111827;
+}
 
-    background: var(--asu-gold);
-
-    color: black;
-
+.partial p,
+.partial h2 {
+  color: #111827;
 }
 
 .failed {
-
-    background: var(--asu-maroon);
-
+  background: linear-gradient(135deg, var(--asu-maroon) 0%, #6f1732 100%);
 }
 
-/* Review badges */
-
 .review {
-
-    background: var(--asu-maroon);
-
-    color: white;
-
-    border-radius: 5px;
-
-    padding: 4px 8px;
-
-    font-weight: bold;
-
+  background: linear-gradient(135deg, var(--asu-maroon) 0%, #6f1732 100%);
+  color: white;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-weight: bold;
 }
 
 .ok {
-
-    background: #2E7D32;
-
-    color: white;
-
-    border-radius: 5px;
-
-    padding: 4px 8px;
-
-    font-weight: bold;
-
+  background: linear-gradient(135deg, #2E7D32 0%, #43A047 100%);
+  color: white;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-weight: bold;
 }
 
-/* DataTables */
+/* Cards / panels */
+.card,
+.panel,
+.gt_table {
+  border-radius: var(--radius);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow: var(--shadow-soft);
+  background: var(--surface);
+}
+
+.card {
+  padding: 0;
+}
+
+/* GT tables */
+.gt_table {
+  font-size: 0.95rem;
+}
+
+.gt_table table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.gt_table thead {
+  background: linear-gradient(90deg, var(--asu-maroon), #6f1732);
+  color: white;
+}
+
+.gt_table th {
+  color: white !important;
+  font-weight: 700 !important;
+}
+
+.gt_table tbody tr:nth-child(even) {
+  background: #fbfdff;
+}
+
+/* DataTables (if any remain) */
+table.dataTable {
+  font-size: 0.92em;
+}
 
 table.dataTable thead {
-
-    background: var(--asu-maroon);
-
-    color: white;
-
+  background: linear-gradient(90deg, var(--asu-maroon), #6f1732);
+  color: white;
 }
 
 .dataTables_wrapper .dataTables_filter input {
-
-    border: 1px solid var(--asu-maroon);
-
+  border: 1px solid rgba(140, 29, 64, 0.45);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-
-    background: var(--asu-gold) !important;
-
-    color: black !important;
-
+  background: var(--asu-gold) !important;
+  color: #111827 !important;
+  border: none !important;
+  border-radius: 8px;
 }
 
+/* Images / figures */
+img {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  padding: 10px;
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.figure-caption {
+  text-align: center;
+  color: #64748b;
+  font-style: italic;
+  margin-top: 0.35rem;
+}
+
+.center-figure img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 96%;
+}
+
+/* Code */
+code {
+  color: var(--asu-maroon);
+  background: rgba(140, 29, 64, 0.06);
+  padding: 0.12rem 0.28rem;
+  border-radius: 6px;
+}
+
+pre {
+  border-left: 5px solid var(--asu-gold);
+  border-radius: 10px;
+  background: #0f172a;
+  color: #e5e7eb;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* Links */
 a {
-
-    color: var(--asu-maroon);
-
+  color: #1f3b66;
 }
 
 a:hover {
-
-    color: black;
-
+  color: var(--asu-maroon);
 }
 
-/* Center images */
+/* Callouts / alerts */
+.alert,
+.callout {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
 
-.center-figure img {
-    display: block;
+.alert-warning {
+  border-left: 6px solid var(--asu-gold);
+}
+
+.alert-success {
+  border-left: 6px solid var(--asu-green);
+}
+
+/* Hero banner (optional if you add it in the qmd later) */
+.hero {
+  background: linear-gradient(135deg, #102a4d 0%, #0f2340 55%, #1a3a6b 100%);
+  color: white;
+  padding: 28px 32px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 28px;
+}
+
+.hero h1,
+.hero h2,
+.hero h3,
+.hero p {
+  color: white;
+  border: none;
+  margin: 0;
+}
+
+.hero h1 {
+  background: none;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.hero p {
+  opacity: 0.94;
+}
+
+/* Make the page breathe a little more on wide screens */
+@media (min-width: 1200px) {
+  .quarto-container,
+  #quarto-document-content,
+  main,
+  .content {
+    max-width: 1400px;
     margin-left: auto;
     margin-right: auto;
-    max-width: 95%;
+  }
 }
