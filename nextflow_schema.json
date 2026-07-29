@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/ZooPhy/apgap-influenza-pipeline/main/nextflow_schema.json",
+  "title": "APGAP Influenza Pipeline",
+  "description": "Parameters for the APGAP influenza whole-genome analysis workflow.",
+  "type": "object",
+  "properties": {
+    "reads_dir": {
+      "type": "string",
+      "title": "Reads directory",
+      "description": "Directory containing paired-end FASTQ files. Recommended for standard runs.",
+      "examples": [
+        "data"
+      ]
+    },
+    "reads": {
+      "type": "string",
+      "title": "Reads glob pattern",
+      "description": "Optional glob pattern for paired-end FASTQ files. Use this instead of reads_dir when you need a custom file match.",
+      "examples": [
+        "data/*-R{1,2}.fastq.gz"
+      ]
+    },
+    "outdir": {
+      "type": "string",
+      "title": "Output directory",
+      "description": "Directory where pipeline outputs will be written.",
+      "default": "results"
+    },
+    "threads": {
+      "type": "integer",
+      "title": "Threads",
+      "description": "Number of CPU threads used by multi-threaded processes.",
+      "default": 1,
+      "minimum": 1
+    },
+    "host": {
+      "type": "string",
+      "title": "Host category",
+      "description": "Host category used for subtype interpretation and review flags.",
+      "default": "human",
+      "enum": [
+        "human",
+        "bird",
+        "swine",
+        "environmental",
+        "other"
+      ]
+    },
+    "trim_primers": {
+      "type": "boolean",
+      "title": "Enable Cutadapt primer trimming",
+      "description": "Trim assay-specific 5' primers before fastp.",
+      "default": false
+    },
+    "primers_5p_r1": {
+      "type": "array",
+      "title": "R1 5' primer sequences",
+      "description": "Optional 5' primer sequences to trim from R1 reads.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "primers_5p_r2": {
+      "type": "array",
+      "title": "R2 5' primer sequences",
+      "description": "Optional 5' primer sequences to trim from R2 reads.",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "cutadapt_min_overlap": {
+      "type": "integer",
+      "title": "Cutadapt minimum overlap",
+      "description": "Minimum overlap required for primer trimming.",
+      "default": 10,
+      "minimum": 1
+    },
+    "cutadapt_error_rate": {
+      "type": "number",
+      "title": "Cutadapt error rate",
+      "description": "Maximum error rate allowed during primer trimming.",
+      "default": 0.1,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "coverage_threshold": {
+      "type": "integer",
+      "title": "Coverage threshold",
+      "description": "Minimum median depth required for a segment to be classified as PASS.",
+      "default": 20,
+      "minimum": 1
+    },
+    "subtype_min_median_depth": {
+      "type": "integer",
+      "title": "Subtype minimum median depth",
+      "description": "Minimum median depth required for subtype support.",
+      "default": 20,
+      "minimum": 1
+    },
+    "subtype_min_breadth": {
+      "type": "number",
+      "title": "Subtype minimum breadth",
+      "description": "Minimum breadth of coverage required for subtype support.",
+      "default": 0.8,
+      "minimum": 0,
+      "maximum": 1
+    },
+    "subtype_minor_fraction": {
+      "type": "number",
+      "title": "Subtype minor fraction",
+      "description": "Secondary-to-dominant subtype depth fraction used to identify low-level or mixed subtype signals.",
+      "default": 0.1,
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}
