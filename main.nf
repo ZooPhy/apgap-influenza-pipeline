@@ -200,6 +200,7 @@ process BLASTN_IRMA_PASS_SEGMENTS {
           path(coverage_tsv),
           path(pass_segments_txt),
           path(pass_fasta)
+    path blast_db_files
 
   output:
     tuple val(sample_id),
@@ -209,7 +210,7 @@ process BLASTN_IRMA_PASS_SEGMENTS {
   """
   blastn \
     -query ${pass_fasta} \
-    -db ${params.blast_db} \
+    -db fluA_db \
     -out ${sample_id}.irma_pass_segments.blast.tsv \
     -outfmt "6 qseqid sseqid pident qcovs length mismatch gapopen qlen slen evalue bitscore stitle" \
     -num_threads ${task.cpus}
@@ -687,7 +688,19 @@ Valid options:
     file(params.coverage_script)
   )
 
-  blast_results = BLASTN_IRMA_PASS_SEGMENTS(irma_coverage)
+  // Stage the BLAST database into each BLAST task. The default profile uses
+  // the locally built database, while the APGAP profile uses the GCS copy.
+  blast_db_files = Channel
+    .fromPath(
+      "${params.blast_db_dir}/fluA_db.*",
+      checkIfExists: true
+    )
+    .collect()
+
+  blast_results = BLASTN_IRMA_PASS_SEGMENTS(
+    irma_coverage,
+    blast_db_files
+  )
   vadr_results = VADR_IRMA_PASS_SEGMENTS(irma_coverage)
 
   vadr_for_variant = vadr_results.map { sid, vadr_files ->
