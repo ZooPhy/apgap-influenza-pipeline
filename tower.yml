@@ -1,0 +1,24 @@
+reports:
+  "run_summary/run_summary.html":
+    display: "APGAP run summary"
+    mimeType: "text/html"
+
+  "qc/multiqc/multiqc_report.html":
+    display: "MultiQC report"
+    mimeType: "text/html"
+
+  "run_summary/run_summary.tsv":
+    display: "Run summary table"
+    mimeType: "text/tab-separated-values"
+
+  "run_summary/tables/samples_requiring_review.tsv":
+    display: "Samples requiring review"
+    mimeType: "text/tab-separated-values"
+
+  "summary/*.sample_summary.tsv":
+    display: "Sample summary"
+    mimeType: "text/tab-separated-values"
+
+  "run_summary/figures/run_summary.pdf":
+    display: "Run summary figures"
+    mimeType: "application/pdf"

@@ -572,8 +572,8 @@ It includes:
 ├── envs/
 │   └── run_summary.yaml
 ├── FLU_DB/
-│   ├── fluA_reference.fasta.zip   (downloaded automatically if needed)
-│   └── fluA_db/                   (generated automatically)
+│   ├── fluA_reference.fasta.zip
+│   └── fluA_db/
 ├── resources/
 │   └── genetic_code_translation_table_1.csv
 ├── scripts/
@@ -584,6 +584,8 @@ It includes:
 │   └── run_summary.R
 ├── main.nf
 ├── nextflow.config
+├── nextflow_schema.json
+├── tower.yml
 └── README.md
 ```
 
@@ -647,3 +649,36 @@ fluA_db.nsq
 ```
 
 The database location can be overridden explicitly with `--blast_db_dir`, but routine users should rely on the selected profile.
+
+---
+
+# Workflow Outputs and Seqera Platform Reports
+
+The entry workflow exposes named outputs for MultiQC, per-sample summaries, and the complete run-summary bundle. These names make the final products easier to consume from parent workflows and other Nextflow tooling. The existing `publishDir` directives remain in place, so laptop, HPC, and cloud runs continue to write the same directory structure.
+
+The repository also includes a root-level `tower.yml` file that tells Seqera Platform which published files should appear as named reports in the run **Outputs** tab. Seqera report discovery is based on files published with `publishDir`; the workflow `emit` names complement this configuration but do not replace `tower.yml`.
+
+The workflow exposes these named outputs:
+
+- `multiqc_report`
+- `sample_summaries`
+- `run_summary_tsv`
+- `run_summary_markdown`
+- `run_summary_html`
+- `run_summary_figures`
+- `run_summary_tables`
+
+For APGAP/Seqera runs, the following reports are configured:
+
+- APGAP run summary (`run_summary/run_summary.html`)
+- MultiQC report (`qc/multiqc/multiqc_report.html`)
+- Run summary table (`run_summary/run_summary.tsv`)
+- Samples requiring review (`run_summary/tables/samples_requiring_review.tsv`)
+- Per-sample summary tables (`summary/*.sample_summary.tsv`)
+- Run summary figures (`run_summary/figures/run_summary.pdf`)
+
+These files continue to be published under the selected `--outdir`. The `tower.yml` file only makes the selected reports discoverable and previewable from the Seqera run page; it does not change the underlying pipeline output locations.
+
+After adding or changing `tower.yml`, commit it to the pipeline repository and launch a new run with **Pull latest** enabled. Reports from runs completed before the file was added will not be retroactively populated in the Outputs tab.
+
+If report configuration is also entered in the Seqera launch form under **Advanced options → Seqera Cloud config file**, that launch-time configuration overrides the repository's `tower.yml` definition.
